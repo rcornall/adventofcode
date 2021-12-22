@@ -1,9 +1,17 @@
-use std::io::Read;
+use std::{fs::File, io::BufRead, io::BufReader, io::Error, io::ErrorKind, path::Path};
 
-pub fn get_file_as_string(name: &str) -> String {
-    let mut f = std::fs::File::open(format!("data/{}.txt", name)).expect("Unable to open file");
-    let mut contents = String::new();
-    f.read_to_string(&mut contents).expect("Unable to read file to string");
+pub fn get_file_into_vec(path: impl AsRef<Path>) -> Result<Vec<u32>, std::io::Error> {
+    // include_str! would do..
+    let f = File::open(path).expect("Unable to open file");
 
-    contents
+    BufReader::new(f)
+        .lines()
+        .map(|l| {
+            l.and_then(|n| {
+                n.parse()
+                    // need to pass thru io::Error type for BufReader.lines() result<string, (io)error> type.. weird.
+                    .map_err(|e| Error::new(ErrorKind::InvalidData, e))
+            })
+        })
+        .collect()
 }
